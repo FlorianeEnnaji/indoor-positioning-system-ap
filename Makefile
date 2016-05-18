@@ -3,17 +3,24 @@ export STAGING_DIR=../staging_dir
 GCC=$(PREFIX)/toolchain/bin/mips-openwrt-linux-gcc
 LD=$(PREFIX)/toolchain/bin/mips-openwrt-linux-ld
 #ALLFLAGS=-Wall -Werror -O2 -I$(PREFIX)/toolchain/include/ -I$(PREFIX)/target/usr/include/ -L$(PREFIX)/toolchain/lib/ -L$(PREFIX)/target/usr/lib/ -lpcap -lm -lcurl -lssl -lz -lcrypto -pthread
-ALLFLAGS=-Wall -Werror -O2 -I$(PREFIX)/toolchain/include/ -I$(PREFIX)/target/usr/include/ -L$(PREFIX)/toolchain/lib/ -L$(PREFIX)/target/usr/lib/ -lpcap -lm -lssl -lz -lcrypto -pthread
-GCCFLAGS=-Wall -Werror -O2 -I$(PREFIX)/toolchain/include/ -I$(PREFIX)/target/usr/include/
+ALLFLAGS=-Wall -O2 -I$(PREFIX)/toolchain/include/ -I$(PREFIX)/target/usr/include/ -L$(PREFIX)/toolchain/lib/ -L$(PREFIX)/target/usr/lib/ -lpcap -lm -lssl -lz -lcrypto -pthread
+GCCFLAGS=-Wall -O2 -I$(PREFIX)/toolchain/include/ -I$(PREFIX)/target/usr/include/
 #LDFLAGS=-L$(PREFIX)/toolchain/lib/ -L$(PREFIX)/target/usr/lib/ -lpcap -lm -lcurl -pthread -lmicrohttpd -lpolarssl -lz #-lcrypto
-LDFLAGS=-L$(PREFIX)/toolchain/lib/ -L$(PREFIX)/target/usr/lib/ -lpcap -lm -pthread -lmicrohttpd -lz #-lcrypto
+LDFLAGS=-L$(PREFIX)/toolchain/lib/ -L$(PREFIX)/target/usr/lib/ -lpcap -lm -pthread -lz #-lcrypto
 
-oWRT-HelloWorld: openwrt-helloworld.c
-	$(GCC) $(ALLFLAGS) openwrt-helloworld.c -o openwrt-helloworld
+# oWRT-HelloWorld: openwrt-helloworld.c
+# 	$(GCC) $(ALLFLAGS) openwrt-helloworld.c -o openwrt-helloworld
 
-TARGET=rssi-display
+#TARGET=rssi-display
+TARGET=main
 
 all: $(TARGET)
+
+main: sniffer.o main.o
+	$(GCC) $(LDFLAGS) -o main sniffer.o main.o
+
+main.o : main.c sniffer.h
+	$(GCC) $(GCCFLAGS) -c -o main.o main.c
 
 rssi-display.o: rssi-display.c rssi_list.h
 	$(GCC) $(GCCFLAGS) -c -o rssi-display.o rssi-display.c
