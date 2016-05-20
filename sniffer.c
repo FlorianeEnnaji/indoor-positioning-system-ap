@@ -47,16 +47,18 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
     if ((eh->frame_control & 0x03) == 0x01) {
 			
  		printf("\nPacket number %d:\n", count-1);
-
+/*
 	printf("Length of radiotap header : %d\n\r", len);
 	printf("it_present[0] : 0x%x\n\r", rtap_head->it_present[0]);
 	printf("it_present[1] : 0x%x\n\r", rtap_head->it_present[1]);
 	printf("it_present[2] : 0x%x\n\r", rtap_head->it_present[2]);
 	printf("it_present[3] : 0x%x\n\r", rtap_head->it_present[3]);
-	 
+*/	 
 	
 	
 		mac = eh->source_addr;
+		
+		
 		mac_receive = eh->recipient;
 		first_flags = rtap_head->it_present[0];
 		offset = 8;	/* size of the radiotap header */
@@ -67,18 +69,20 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 		offset += ((first_flags & 0x02) == 0x02) ? 1 : 0 ; /* IEEE80211_RADIOTAP_FLAGS */
 		
 		
+		offset += 1; /* Whatever the IEEE80211_RADIOTAP_RATE flag is, we need to add one to the offset */
+// 		offset += ((first_flags & 0x04) == 0x04) ? 1 : 0 ; /* IEEE80211_RADIOTAP_RATE */
 		
-		offset += ((first_flags & 0x04) == 0x04) ? 1 : 0 ; /* IEEE80211_RADIOTAP_RATE */
-		
-		printf("channel : %d - %d\n\r", *((unsigned short *) rtap_head + offset), *((unsigned short *) rtap_head + offset+2));
+// 		printf("channel : %d - %d\n\r", *((unsigned short *) rtap_head + offset), *((unsigned short *) rtap_head + offset+2));
 
 		
 		offset += ((first_flags & 0x08) == 0x08) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
 		offset += ((first_flags & 0x10) == 0x10) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
 		rssi = *((char *) rtap_head + offset) - 0x100;
-		printf("Sequence control : %d\n\r", eh->sequence_control);
-		printf("%d bytes -- %02X:%02X:%02X:%02X:%02X:%02X -- RSSI: %d dBm\n",
-		       len, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], (int)rssi);
+		
+		
+// 		printf("Sequence control : %d\n\r", eh->sequence_control);
+		printf("%d bytes -- %02X:%02X:%02X:%02X:%02X:%02X -- RSSI: %d dBm, offset : %d\n",
+		       len, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], (int)rssi, offset);
 		printf("receive : %02X:%02X:%02X:%02X:%02X:%02X\n\r", mac_receive[0], mac_receive[1], mac_receive[2], mac_receive[3], mac_receive[4], mac_receive[5]);
 	//}
 	
