@@ -3,7 +3,6 @@
 #include "sniffer.h"
 
 
-
 int main(int argc, char *argv[])
 {
 	pcap_t *handle;			/* Session handle */
@@ -11,7 +10,8 @@ int main(int argc, char *argv[])
 	char errbuf[PCAP_ERRBUF_SIZE];	/* Error string */
 	struct bpf_program fp;		/* The compiled filter */
 	//char filter_exp[] = "tcp port 80 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)";	/* The filter expression */
-	char filter_exp[] = "ether host **MAC**";
+	char filter_exp[30] = "";
+	
 	
 	char wirelessInterface[] = "wlan0";
 	
@@ -19,8 +19,26 @@ int main(int argc, char *argv[])
 	bpf_u_int32 net;		/* Our IP */
 	struct pcap_pkthdr header;	/* The header that pcap gives us */
 	const u_char *packet;		/* The actual packet */
+	char a,b,c,d,e,f;
 	
 	int i;
+	
+	printf("Capturing packets on %s\n\r", wirelessInterface);
+	/* Check if there is an argument */
+	if(argc > 1) {
+		/* Check if the argument is a valid MAC address */
+				printf("Capturing packets on %s\n\r", wirelessInterface);
+
+		if(sscanf(argv[1], "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",&a,&b,&c,&d,&e,&f) == 6) {
+			printf("Filtering on %s\n\r", argv[1]);
+			sprintf(filter_exp, "ether host %s", argv[1]);
+		}
+		else {
+			printf("The argument is NOT a MAC address.\n\r");
+			return -1;
+		}
+	}
+
 
 	/* Define the device */
 	/*dev = pcap_lookupdev(errbuf);
@@ -77,3 +95,4 @@ int main(int argc, char *argv[])
 	pcap_close(handle);
 	return(0);
 }
+
