@@ -16,10 +16,10 @@ TARGET=main
 
 all: $(TARGET)
 
-main: sniffer.o main.o
-	$(GCC) $(LDFLAGS) -o main sniffer.o main.o
+main: sniffer.o main.o http-client.o
+	$(GCC) $(LDFLAGS) -o main sniffer.o main.o http-client.o
 
-main.o : main.c sniffer.h
+main.o : main.c sniffer.h http-client.h
 	$(GCC) $(GCCFLAGS) -c -o main.o main.c
 
 rssi-display.o: rssi-display.c rssi_list.h

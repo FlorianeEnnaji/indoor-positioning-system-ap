@@ -1,5 +1,6 @@
 #include "sniffer.h"
 #include <semaphore.h>
+#include "http-client.h"
 
 
 sem_t synchro;
@@ -53,9 +54,7 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	printf("it_present[1] : 0x%x\n\r", rtap_head->it_present[1]);
 	printf("it_present[2] : 0x%x\n\r", rtap_head->it_present[2]);
 	printf("it_present[3] : 0x%x\n\r", rtap_head->it_present[3]);
-*/	 
-	
-	
+*/
 		mac = eh->source_addr;
 		
 		
@@ -79,6 +78,7 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 		offset += ((first_flags & 0x10) == 0x10) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
 		rssi = *((char *) rtap_head + offset) - 0x100;
 		
+		send_request(mac,rssi);
 		
 // 		printf("Sequence control : %d\n\r", eh->sequence_control);
 		printf("%d bytes -- %02X:%02X:%02X:%02X:%02X:%02X -- RSSI: %d dBm, offset : %d\n",
@@ -117,7 +117,27 @@ got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet)
 	ethernet = (struct sniff_ethernet*)(packet);
 	
 	/* define/compute ip header offset */
-	ip = (struct sniff_ip*)(packet + SIZE_ETHERNET);
+	ip = (struct sniff_ip*)(eh + sizeof(struct ieee80211_header));
+	int i;
+	for(i = 0; i < 10; i++) {
+		printf("sizeof : %d\n", sizeof(struct ieee80211_header));
+		ip = (struct sniff_ip*)(eh + 34 + i);
+		printf("vhl : %02x\n", ip->ip_vhl);
+		if(ip->ip_vhl != 0) {
+			while(1) {}
+		}
+	//	printf("IP version = %d\n", IP_V(ip));
+	}
+	/*printf("PACKET :\n\r");
+	int i;
+    i=0;
+    do
+    {
+        printf("0x%02x \n", ((char *)(eh + i)));
+        i++;
+    }
+    while(i<=30);*/
+	
 	size_ip = IP_HL(ip)*4;
 	if (size_ip < 20) {
 		printf("   * Invalid IP header length: %u bytes\n", size_ip);
