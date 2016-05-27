@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 	char errbuf[PCAP_ERRBUF_SIZE];	/* Error string */
 	struct bpf_program fp;		/* The compiled filter */
 	//char filter_exp[] = "tcp port 80 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)";	/* The filter expression */
-	char filter_exp[] = "ether host ***REMOVED***";
+	char filter_exp[] = "ether host **MAC**";
 	
 	char wirelessInterface[] = "wlan0";
 	
