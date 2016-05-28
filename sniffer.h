@@ -84,8 +84,18 @@ struct ieee80211_header
 	u_char source_addr[6];
 	u_char address3[6];
 	u_short sequence_control;
-	u_char address4[6];
+	u_short qos_control;
 };
+
+/* Logic link control */
+typedef struct llcsnaphdr
+{
+	uint8_t dsap;
+	uint8_t ssap;
+	uint8_t ctrl;
+	uint8_t oui[3];
+	uint16_t type;
+} llcsnaphdr;
 
 struct ieee80211_radiotap_header
 {
@@ -97,50 +107,49 @@ struct ieee80211_radiotap_header
 
 
 struct rtapdata {
-    uint8_t  antsignal;
-    uint8_t  pad_for_tx_attentuation; // <-- added
-    uint16_t tx_attenuation;
-    uint8_t  flags;
-    uint8_t  pad_for_rx_flags;        // <-- added
-    uint16_t rx_flags;
+	uint8_t  antsignal;
+	uint8_t  pad_for_tx_attentuation; // <-- added
+	uint16_t tx_attenuation;
+	uint8_t  flags;
+	uint8_t  pad_for_rx_flags;        // <-- added
+	uint16_t rx_flags;
 };
 
 enum ieee80211_radiotap_type {
-        IEEE80211_RADIOTAP_TSFT = 0,
-        IEEE80211_RADIOTAP_FLAGS = 1,
-        IEEE80211_RADIOTAP_RATE = 2,
-        IEEE80211_RADIOTAP_CHANNEL = 3,
-        IEEE80211_RADIOTAP_FHSS = 4,
-        IEEE80211_RADIOTAP_DBM_ANTSIGNAL = 5,
-        IEEE80211_RADIOTAP_DBM_ANTNOISE = 6,
-        IEEE80211_RADIOTAP_LOCK_QUALITY = 7,
-        IEEE80211_RADIOTAP_TX_ATTENUATION = 8,
-        IEEE80211_RADIOTAP_DB_TX_ATTENUATION = 9,
-        IEEE80211_RADIOTAP_DBM_TX_POWER = 10,
-        IEEE80211_RADIOTAP_ANTENNA = 11,
-        IEEE80211_RADIOTAP_DB_ANTSIGNAL = 12,
-        IEEE80211_RADIOTAP_DB_ANTNOISE = 13,
-        IEEE80211_RADIOTAP_RX_FLAGS = 14,
-        IEEE80211_RADIOTAP_TX_FLAGS = 15,
-        IEEE80211_RADIOTAP_RTS_RETRIES = 16,
-        IEEE80211_RADIOTAP_DATA_RETRIES = 17,
+	IEEE80211_RADIOTAP_TSFT = 0,
+	IEEE80211_RADIOTAP_FLAGS = 1,
+	IEEE80211_RADIOTAP_RATE = 2,
+	IEEE80211_RADIOTAP_CHANNEL = 3,
+	IEEE80211_RADIOTAP_FHSS = 4,
+	IEEE80211_RADIOTAP_DBM_ANTSIGNAL = 5,
+	IEEE80211_RADIOTAP_DBM_ANTNOISE = 6,
+	IEEE80211_RADIOTAP_LOCK_QUALITY = 7,
+	IEEE80211_RADIOTAP_TX_ATTENUATION = 8,
+	IEEE80211_RADIOTAP_DB_TX_ATTENUATION = 9,
+	IEEE80211_RADIOTAP_DBM_TX_POWER = 10,
+	IEEE80211_RADIOTAP_ANTENNA = 11,
+	IEEE80211_RADIOTAP_DB_ANTSIGNAL = 12,
+	IEEE80211_RADIOTAP_DB_ANTNOISE = 13,
+	IEEE80211_RADIOTAP_RX_FLAGS = 14,
+	IEEE80211_RADIOTAP_TX_FLAGS = 15,
+	IEEE80211_RADIOTAP_RTS_RETRIES = 16,
+	IEEE80211_RADIOTAP_DATA_RETRIES = 17,
 
-        IEEE80211_RADIOTAP_MCS = 19,
-        IEEE80211_RADIOTAP_AMPDU_STATUS = 20,
-        IEEE80211_RADIOTAP_VHT = 21,
+	IEEE80211_RADIOTAP_MCS = 19,
+	IEEE80211_RADIOTAP_AMPDU_STATUS = 20,
+	IEEE80211_RADIOTAP_VHT = 21,
 
-        /* valid in every it_present bitmap, even vendor namespaces */
-        IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE = 29,
-        IEEE80211_RADIOTAP_VENDOR_NAMESPACE = 30,
-        IEEE80211_RADIOTAP_EXT = 31
+	/* valid in every it_present bitmap, even vendor namespaces */
+	IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE = 29,
+	IEEE80211_RADIOTAP_VENDOR_NAMESPACE = 30,
+	IEEE80211_RADIOTAP_EXT = 31
 };
 
 
-void got_packet(u_char *, const struct pcap_pkthdr *, const u_char *);
+void got_packet(unsigned char *, const struct pcap_pkthdr *, const unsigned char *);
 
-void print_payload(const u_char *payload, int len);
+void print_payload(const unsigned char *payload, int len);
 
-
-void print_hex_ascii_line(const u_char *payload, int len, int offset);
+void print_hex_ascii_line(const unsigned char *payload, int len, int offset);
 
 #endif

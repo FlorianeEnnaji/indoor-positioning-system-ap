@@ -4,19 +4,12 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include "http-client.h"
 
-#define TAILLEMAX 400
- 
-#define HOST "192.168.1.233"
-#define PAGE "/"
-#define PORT "8000"
-#define USERAGENT "HTMLGET 1.1"
 
-
-
-void send_request(char *ipSrc, int rssi)
+void send_request(const char *ipSrc, const int rssi)
 {
 	int sock, rv, cc;
 	char msg_r[TAILLEMAX] = "", *port = PORT, *host=HOST;
@@ -48,18 +41,18 @@ void send_request(char *ipSrc, int rssi)
 	{
 		perror("socket connection error : ");
 	}
-	
+
 	get = build_post_query(host, "/api/AP-measure",req);
-	printf("message sent : %s\n", get);
-	  
+	// 	printf("message sent : %s\n", get);
+
 	//Send the query to the server
 	int sent = 0;
 	while(sent < strlen(get))
 	{
 		tmpres = send(sock, get+sent, strlen(get)-sent, 0);
 		if(tmpres == -1){
-		perror("Can't send query");
-		exit(1);
+			perror("Can't send query");
+			exit(1);
 		}
 		sent += tmpres;
 	}
@@ -68,7 +61,7 @@ void send_request(char *ipSrc, int rssi)
 
 	recv(sock, msg_r, sizeof(msg_r), MSG_PEEK);
 
-	printf("message received : %s\n", msg_r);
+	// 	printf("message received : %s\n", msg_r);
 
 	close(sock);
 	free(req);
@@ -76,34 +69,34 @@ void send_request(char *ipSrc, int rssi)
 	freeaddrinfo(infos);
 }
 
-char * build_get_query(char *host, char *page)
+char * build_get_query(const char *host, const char *page)
 {
-  char *query;
-  char *getpage = page;
-  char *tpl = "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n";
-  if(getpage[0] == '/'){
-    getpage = getpage + 1;
-    fprintf(stderr,"Removing leading \"/\", converting %s to %s\n", page, getpage);
-  }
-  // -5 is to consider the %s %s %s in tpl and the ending \0
-  query = (char *)malloc(strlen(host)+strlen(getpage)+strlen(USERAGENT)+strlen(tpl)-5);
-  sprintf(query, tpl, getpage, host, USERAGENT);
-  return query;
+	char *query;
+	const char *getpage = page;
+	char *tpl = "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n";
+	if(getpage[0] == '/'){
+		getpage = getpage + 1;
+		//     fprintf(stderr,"Removing leading \"/\", converting %s to %s\n", page, getpage);
+	}
+	// -5 is to consider the %s %s %s in tpl and the ending \0
+	query = (char *)malloc(strlen(host)+strlen(getpage)+strlen(USERAGENT)+strlen(tpl)-5);
+	sprintf(query, tpl, getpage, host, USERAGENT);
+	return query;
 }
 
-char * build_post_query(char *host, char *page, char *content)
+char * build_post_query(const char *host, const char *page, const char *content)
 {
-  char *query;
-  char *getpage = page;
-  int size = strlen(content);
-  char *tpl = "POST /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\n%s";
-  
-  if(getpage[0] == '/'){
-    getpage = getpage + 1;
-    fprintf(stderr,"Removing leading \"/\", converting %s to %s\n", page, getpage);
-  }
-  // -5 is to consider the %s %s %s in tpl and the ending \0
-  query = (char *)malloc(strlen(host)+strlen(getpage)+strlen(USERAGENT)+strlen(tpl)+size-5);
-  sprintf(query, tpl, getpage, host, USERAGENT, size, content);
-  return query;
+	char *query;
+	const char *getpage = page;
+	int size = strlen(content);
+	char *tpl = "POST /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\n%s";
+
+	if(getpage[0] == '/'){
+		getpage = getpage + 1;
+		//     fprintf(stderr,"Removing leading \"/\", converting %s to %s\n", page, getpage);
+	}
+	// -5 is to consider the %s %s %s in tpl and the ending \0
+	query = (char *)malloc(strlen(host)+strlen(getpage)+strlen(USERAGENT)+strlen(tpl)+size-5);
+	sprintf(query, tpl, getpage, host, USERAGENT, size, content);
+	return query;
 }
