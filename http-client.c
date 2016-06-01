@@ -15,7 +15,7 @@ void send_request(const char *ipSrc, const int rssi)
 	char msg_r[TAILLEMAX] = "", *port = PORT, *host=HOST;
 	char * get;
 	int tmpres;
-	char *req_format = "APid=test&DeviceIp=%s&RSSI=%03d\0";
+	char *req_format = "DeviceIp=%s&RSSI=%03d\0";
 	char *req;
 	struct addrinfo hints, *infos;
 

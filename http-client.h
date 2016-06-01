@@ -3,9 +3,9 @@
 
 #define TAILLEMAX 400
 
-#define HOST "192.168.1.233"
+#define HOST "192.168.1.200"
 #define PAGE "/"
-#define PORT "8000"
+#define PORT "8090"
 #define USERAGENT "HTMLGET 1.1"
 
 void send_request(const char *ipSrc, const int rssi);

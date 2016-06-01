@@ -36,7 +36,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-
 	/* Define the device */
 	/*dev = pcap_lookupdev(errbuf);
 	  if (dev == NULL) {
@@ -68,7 +67,7 @@ int main(int argc, char *argv[])
 
 	printf("pcap data link : %d\n\r", pcap_datalink(handle));
 
-	pcap_loop(handle, 500, got_packet, NULL);
+	pcap_loop(handle, 0, got_packet, NULL);
 
 
 	/* And close the session */

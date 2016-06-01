@@ -8,7 +8,7 @@ sem_t synchro;
 /* Callback for packet captured */
 void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const unsigned char *packet)
 {
-	static int count = 1;                   /* packet counter */
+	static unsigned long long count = 0;                   /* packet counter */
 
 	/* declare pointers to packet headers */
 	const struct ieee80211_radiotap_header * rtap_head;	/* Radiotap header */
@@ -44,7 +44,7 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 
 	/* Only get big packets (more likely to be ip packets) */
 	if ((eh->frame_control & 0x03) == 0x01 && header->len > 300) {
-
+		printf("Packet n°%llu\n\r", count);
 		mac = (unsigned char*)eh->source_addr;
 
 		mac_receive = (unsigned char*)eh->recipient;
@@ -70,88 +70,92 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 		// 		printf("Sequence control : %d\n\r", eh->sequence_control);
 		printf("%d bytes -- %02X:%02X:%02X:%02X:%02X:%02X -- RSSI: %d dBm, offset : %d\n",
 				size_radiotap, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], (int)rssi, offset);
-		printf("receive : %02X:%02X:%02X:%02X:%02X:%02X\n\r", mac_receive[0], mac_receive[1], mac_receive[2], mac_receive[3], mac_receive[4], mac_receive[5]);
+// 		printf("receive : %02X:%02X:%02X:%02X:%02X:%02X\n\r", mac_receive[0], mac_receive[1], mac_receive[2], mac_receive[3], mac_receive[4], mac_receive[5]);
 		//}
 
-		printf("caplen of pcap_pkthdr :%d\n\r", header->caplen);
-		printf("len of pcap_pkthdr :%d\n\r", header->len);
+// 		printf("caplen of pcap_pkthdr :%d\n\r", header->caplen);
+// 		printf("len of pcap_pkthdr :%d\n\r", header->len);
 
-		printf("EH -> control : %x\n\r", eh->frame_control);
-		printf("EH -> duration: %x\n\r", eh->frame_duration);
-		printf("EH -> seq: %x\n\r", eh->sequence_control);
+// 		printf("EH -> control : %x\n\r", eh->frame_control);
+// 		printf("EH -> duration: %x\n\r", eh->frame_duration);
+// 		printf("EH -> seq: %x\n\r", eh->sequence_control);
 
 		/* After ieee80211 header, there is the Logical Link Control header */
 		llcsnaphdr * logic = (llcsnaphdr*) (ptrPacket);
 		ptrPacket += sizeof(llcsnaphdr);
 
-		printf("logic -> dsap = %x\n\r", logic->dsap);
-		printf("logic -> dsap = %x\n\r", logic->ssap);
+// 		printf("logic -> dsap = %x\n\r", logic->dsap);
+// 		printf("logic -> dsap = %x\n\r", logic->ssap);
 
 		/* After logic Link control, there is IP header */
 		ip = (struct sniff_ip*)(ptrPacket);
 
 		size_ip = IP_HL(ip)*4;
 		if (size_ip < 20) {
-			printf("   * Invalid IP header length: %u bytes\n", size_ip);
+			//printf("   * Invalid IP header length: %u bytes\n", size_ip);
 			return;
 		}
 		
-		/* Send request to the server */
-		send_request(inet_ntoa(ip->ip_src),rssi);
+		/* Only send packet when packet is for the server */
+		if(ip->ip_dst.s_addr == inet_addr(HOST)) {
+			/* Send request to the server */
+			send_request(inet_ntoa(ip->ip_src),rssi);
+			
 
-		/* print source and destination IP addresses */
-		printf("       From: %s\n", inet_ntoa(ip->ip_src));
-		printf("         To: %s\n", inet_ntoa(ip->ip_dst));
+			/* print source and destination IP addresses */
+			printf("       From: %s\n", inet_ntoa(ip->ip_src));
+			printf("         To: %s\n", inet_ntoa(ip->ip_dst));
 
-		/* determine protocol */	
-		switch(ip->ip_p) {
-			case IPPROTO_TCP:
-				printf("   Protocol: TCP\n");
-				break;
-			case IPPROTO_UDP:
-				printf("   Protocol: UDP\n");
+			/* determine protocol */	
+			switch(ip->ip_p) {
+				case IPPROTO_TCP:
+					printf("   Protocol: TCP\n");
+					break;
+				case IPPROTO_UDP:
+					printf("   Protocol: UDP\n");
+					return;
+				case IPPROTO_ICMP:
+					printf("   Protocol: ICMP\n");
+					return;
+				case IPPROTO_IP:
+					printf("   Protocol: IP\n");
+					return;
+				default:
+					printf("   Protocol: unknown\n");
+					return;
+			}
+
+			/*
+			*  OK, this packet is TCP.
+			*/
+
+			/* define/compute tcp header offset */
+			ptrPacket += size_ip;
+			tcp = (struct sniff_tcp*)(ptrPacket);
+			size_tcp = TH_OFF(tcp)*4;
+			if (size_tcp < 20) {
+				printf("   * Invalid TCP header length: %u bytes\n", size_tcp);
 				return;
-			case IPPROTO_ICMP:
-				printf("   Protocol: ICMP\n");
-				return;
-			case IPPROTO_IP:
-				printf("   Protocol: IP\n");
-				return;
-			default:
-				printf("   Protocol: unknown\n");
-				return;
-		}
+			}
 
-		/*
-		 *  OK, this packet is TCP.
-		 */
+			printf("   Src port: %d\n", ntohs(tcp->th_sport));
+			printf("   Dst port: %d\n", ntohs(tcp->th_dport));
 
-		/* define/compute tcp header offset */
-		ptrPacket += size_ip;
-		tcp = (struct sniff_tcp*)(ptrPacket);
-		size_tcp = TH_OFF(tcp)*4;
-		if (size_tcp < 20) {
-			printf("   * Invalid TCP header length: %u bytes\n", size_tcp);
-			return;
-		}
+			/* define/compute tcp payload (segment) offset */
+			ptrPacket += size_tcp;
+			payload = ptrPacket;
 
-		printf("   Src port: %d\n", ntohs(tcp->th_sport));
-		printf("   Dst port: %d\n", ntohs(tcp->th_dport));
+			/* compute tcp payload (segment) size */
+			size_payload = ntohs(ip->ip_len) - (size_ip + size_tcp);
 
-		/* define/compute tcp payload (segment) offset */
-		ptrPacket += size_tcp;
-		payload = ptrPacket;
-
-		/* compute tcp payload (segment) size */
-		size_payload = ntohs(ip->ip_len) - (size_ip + size_tcp);
-
-		/*
-		 * Print payload data; it might be binary, so don't just
-		 * treat it as a string.
-		 */
-		if (size_payload > 0) {
-			printf("   Payload (%d bytes):\n", size_payload);
-			print_payload(payload, size_payload);
+			/*
+			* Print payload data; it might be binary, so don't just
+			* treat it as a string.
+			*/
+			if (size_payload > 0) {
+				printf("   Payload (%d bytes):\n", size_payload);
+				print_payload(payload, size_payload);
+			}
 		}
 }
 return;
