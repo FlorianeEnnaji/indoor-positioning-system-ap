@@ -53,8 +53,8 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 
 		offset += 8;
 
-		offset += ((first_flags & 0x01) == 0x01) ? 8 : 0 ;	/* IEEE80211_RADIOTAP_TSFT */
-		offset += ((first_flags & 0x02) == 0x02) ? 1 : 0 ; /* IEEE80211_RADIOTAP_FLAGS */
+		offset += ((first_flags & (1<<IEEE80211_RADIOTAP_TSFT))) ? 8 : 0 ;	/* IEEE80211_RADIOTAP_TSFT */
+		offset += ((first_flags & (1<<IEEE80211_RADIOTAP_FLAGS))) ? 1 : 0 ; /* IEEE80211_RADIOTAP_FLAGS */
 
 
 		offset += 1; /* Whatever the IEEE80211_RADIOTAP_RATE flag is, we need to add one to the offset */
@@ -63,9 +63,12 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 		// 		printf("channel : %d - %d\n\r", *((unsigned short *) rtap_head + offset), *((unsigned short *) rtap_head + offset+2));
 
 
-		offset += ((first_flags & 0x08) == 0x08) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
-		offset += ((first_flags & 0x10) == 0x10) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
+		offset += ((first_flags & (1<<IEEE80211_RADIOTAP_CHANNEL))) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
+		offset += ((first_flags & (1<<IEEE80211_RADIOTAP_FHSS)) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
 		rssi = *((unsigned char *) rtap_head + offset) - 0x100;
+		
+		
+		
 
 		// 		printf("Sequence control : %d\n\r", eh->sequence_control);
 		printf("%d bytes -- %02X:%02X:%02X:%02X:%02X:%02X -- RSSI: %d dBm, offset : %d\n",
