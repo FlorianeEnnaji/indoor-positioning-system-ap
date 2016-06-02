@@ -1,3 +1,8 @@
+
+
+#ifndef __SNIFFER_H__
+#define __SNIFFER_H__
+
 #include <pcap.h>
 #include <stdio.h>
 #include <string.h>
@@ -9,10 +14,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-
-#ifndef __SNIFFER_H__
-#define __SNIFFER_H__
-
+typedef uint64_t u64;
+typedef uint32_t u32;
+typedef uint16_t u16;
+typedef uint8_t u8;
 
 /* default snap length (maximum bytes per packet to capture) */
 #define SNAP_LEN 1518

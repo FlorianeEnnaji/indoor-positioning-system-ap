@@ -25,7 +25,7 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 	const unsigned char * mac, *mac_receive;
 	unsigned long first_flags, second_flags, third_flags;
 	int offset = 0;
-	char rssi1 = 0, rssi2 = 0, rssi3 = 0;
+	char rssi[3] = {0};
 
 	const unsigned char * ptrPacket = packet;	/* Pointer used to go through the packet and decode it */
 
@@ -171,38 +171,37 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 
 		// 		printf("Sequence control : %d\n\r", eh->sequence_control);
 		printf("%d bytes -- %02X:%02X:%02X:%02X:%02X:%02X -- RSSI: %d dBm, offset : %d\n",
-				size_radiotap, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], (int)rssi1, offset);
-// 		printf("receive : %02X:%02X:%02X:%02X:%02X:%02X\n\r", mac_receive[0], mac_receive[1], mac_receive[2], mac_receive[3], mac_receive[4], mac_receive[5]);
+				size_radiotap, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], (int)rssi[0], offset);
+		// 		printf("receive : %02X:%02X:%02X:%02X:%02X:%02X\n\r", mac_receive[0], mac_receive[1], mac_receive[2], mac_receive[3], mac_receive[4], mac_receive[5]);
 		//}
 
-// 		printf("caplen of pcap_pkthdr :%d\n\r", header->caplen);
-// 		printf("len of pcap_pkthdr :%d\n\r", header->len);
+		// 		printf("caplen of pcap_pkthdr :%d\n\r", header->caplen);
+		// 		printf("len of pcap_pkthdr :%d\n\r", header->len);
 
-// 		printf("EH -> control : %x\n\r", eh->frame_control);
-// 		printf("EH -> duration: %x\n\r", eh->frame_duration);
-// 		printf("EH -> seq: %x\n\r", eh->sequence_control);
+		// 		printf("EH -> control : %x\n\r", eh->frame_control);
+		// 		printf("EH -> duration: %x\n\r", eh->frame_duration);
+		// 		printf("EH -> seq: %x\n\r", eh->sequence_control);
 
 		/* After ieee80211 header, there is the Logical Link Control header */
 		llcsnaphdr * logic = (llcsnaphdr*) (ptrPacket);
 		ptrPacket += sizeof(llcsnaphdr);
 
-// 		printf("logic -> dsap = %x\n\r", logic->dsap);
-// 		printf("logic -> dsap = %x\n\r", logic->ssap);
+		// 		printf("logic -> dsap = %x\n\r", logic->dsap);
+		// 		printf("logic -> dsap = %x\n\r", logic->ssap);
 
 		/* After logic Link control, there is IP header */
 		ip = (struct sniff_ip*)(ptrPacket);
 
 		size_ip = IP_HL(ip)*4;
 		if (size_ip < 20) {
-			//printf("   * Invalid IP header length: %u bytes\n", size_ip);
+			printf("   * Invalid IP header length: %u bytes\n", size_ip);
 			return;
 		}
-		
+
 		/* Only send packet when packet is for the server */
 		if(ip->ip_dst.s_addr == inet_addr(HOST)) {
 			/* Send request to the server */
-			send_request(inet_ntoa(ip->ip_src),rssi1,rssi2,rssi3);
-			
+			send_request(inet_ntoa(ip->ip_src),rssi[0],rssi[1],rssi[2]);
 
 			/* print source and destination IP addresses */
 			printf("       From: %s\n", inet_ntoa(ip->ip_src));
@@ -228,8 +227,8 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 			}
 
 			/*
-			*  OK, this packet is TCP.
-			*/
+			 *  OK, this packet is TCP.
+			 */
 
 			/* define/compute tcp header offset */
 			ptrPacket += size_ip;
@@ -251,9 +250,9 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 			size_payload = ntohs(ip->ip_len) - (size_ip + size_tcp);
 
 			/*
-			* Print payload data; it might be binary, so don't just
-			* treat it as a string.
-			*/
+			 * Print payload data; it might be binary, so don't just
+			 * treat it as a string.
+			 */
 			if (size_payload > 0) {
 				printf("   Payload (%d bytes):\n", size_payload);
 				print_payload(payload, size_payload);
