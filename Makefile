@@ -16,8 +16,8 @@ TARGET=main
 
 all: $(TARGET)
 
-main: sniffer.o main.o http-client.o
-	$(GCC) $(LDFLAGS) -o main sniffer.o main.o http-client.o
+main: sniffer.o main.o http-client.o packet-ieee80211-radiotap-iter.o
+	$(GCC) $(LDFLAGS) -o main sniffer.o main.o http-client.o packet-ieee80211-radiotap-iter.o
 
 main.o : main.c sniffer.h http-client.h
 	$(GCC) $(GCCFLAGS) -c -o main.o main.c
