@@ -23,9 +23,9 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 	int size_payload;
 
 	const unsigned char * mac, *mac_receive;
-	unsigned char first_flags;
+	unsigned long first_flags, second_flags, third_flags;
 	int offset = 0;
-	char rssi;
+	char rssi1 = 0, rssi2 = 0, rssi3 = 0;
 
 	const unsigned char * ptrPacket = packet;	/* Pointer used to go through the packet and decode it */
 
@@ -48,31 +48,130 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 		mac = (unsigned char*)eh->source_addr;
 
 		mac_receive = (unsigned char*)eh->recipient;
-		first_flags = rtap_head->it_present[0];
+		first_flags = rtap_head->it_present[0] | rtap_head->it_present[1]<<8 |
+		rtap_head->it_present[2]<<16 | rtap_head->it_present[3]<<24;
+		
+		printf("first flag : %hhx %hhx %hhx %hhx\n\r", first_flags, first_flags>>8, first_flags>>16, first_flags>>24);
+		
 		offset = 8;	/* size of the radiotap header */
 
 		offset += 8;
 
-		offset += ((first_flags & (1<<IEEE80211_RADIOTAP_TSFT))) ? 8 : 0 ;	/* IEEE80211_RADIOTAP_TSFT */
-		offset += ((first_flags & (1<<IEEE80211_RADIOTAP_FLAGS))) ? 1 : 0 ; /* IEEE80211_RADIOTAP_FLAGS */
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_TSFT)) ? 8 : 0 ;	/* IEEE80211_RADIOTAP_TSFT */
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_FLAGS)) ? 1 : 0 ; /* IEEE80211_RADIOTAP_FLAGS */
 
 
 		offset += 1; /* Whatever the IEEE80211_RADIOTAP_RATE flag is, we need to add one to the offset */
-		// 		offset += ((first_flags & 0x04) == 0x04) ? 1 : 0 ; /* IEEE80211_RADIOTAP_RATE */
+		// 		offset += (first_flags & 0x04) == 0x04) ? 1 : 0 ; /* IEEE80211_RADIOTAP_RATE */
 
 		// 		printf("channel : %d - %d\n\r", *((unsigned short *) rtap_head + offset), *((unsigned short *) rtap_head + offset+2));
 
 
-		offset += ((first_flags & (1<<IEEE80211_RADIOTAP_CHANNEL))) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
-		offset += ((first_flags & (1<<IEEE80211_RADIOTAP_FHSS)) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
-		rssi = *((unsigned char *) rtap_head + offset) - 0x100;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_CHANNEL)) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_FHSS)) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
+		rssi1 = *((unsigned char *) rtap_head + offset) - 0x100;
+
+		offset += 1;	/* Memory alignment */
 		
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTSIGNAL)) ? 1 : 0 ;
+
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTNOISE)) ? 1 : 0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_LOCK_QUALITY)) ? 2 : 0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_TX_ATTENUATION)) ? 2 : 0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DB_TX_ATTENUATION)) ? 2 :
+		0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DBM_TX_POWER)) ? 1 : 0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_ANTENNA)) ? 1 : 0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DB_ANTSIGNAL)) ? 1 : 0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DB_ANTNOISE)) ? 1 : 0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_RX_FLAGS)) ? 2 : 0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_TX_FLAGS)) ? 2 : 0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_RTS_RETRIES)) ? 1 : 0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DATA_RETRIES)) ? 1 : 0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_MCS)) ? 3 : 0 ;
 		
+		offset += 3;	/* Memory alignment */
 		
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_AMPDU_STATUS)) ? 8 : 0 ;
+		offset += (first_flags & (1<<IEEE80211_RADIOTAP_VHT)) ? 12 : 0 ;		
+		second_flags = rtap_head->it_present[4] | rtap_head->it_present[5]<<8 |
+		rtap_head->it_present[6]<<16 | rtap_head->it_present[7]<<24;
+		
+// 		printf("second flag : %hhx %hhx %hhx %hhx\n\r", second_flags, second_flags>>8, second_flags>>16, second_flags>>24);
+		
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_TSFT)) ? 8 : 0 ;	/* IEEE80211_RADIOTAP_TSFT */
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_FLAGS)) ? 1 : 0 ; /* IEEE80211_RADIOTAP_FLAGS */
+
+
+		//offset += 1; 
+		
+		// 		offset += (first_flags & 0x04) == 0x04) ? 1 : 0 ; /* IEEE80211_RADIOTAP_RATE */
+
+		// 		printf("channel : %d - %d\n\r", *((unsigned short *) rtap_head + offset), *((unsigned short *) rtap_head + offset+2));
+
+
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_CHANNEL)) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_FHSS)) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
+		
+		rssi2 = *((unsigned char *) rtap_head + offset) - 0x100;
+// 		printf("RSSI2 offest : %d, RSSI2 = %d\n\r", offset, rssi2);
+		
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTSIGNAL)) ? 1 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTNOISE)) ? 1 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_LOCK_QUALITY)) ? 2 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_TX_ATTENUATION)) ? 2 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DB_TX_ATTENUATION)) ? 2 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DBM_TX_POWER)) ? 1 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_ANTENNA)) ? 1 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DB_ANTSIGNAL)) ? 1 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DB_ANTNOISE)) ? 1 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_RX_FLAGS)) ? 2 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_TX_FLAGS)) ? 2 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_RTS_RETRIES)) ? 1 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DATA_RETRIES)) ? 1 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_MCS)) ? 3 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_AMPDU_STATUS)) ? 8 : 0 ;
+		offset += (second_flags & (1<<IEEE80211_RADIOTAP_VHT)) ? 12 : 0 ;
+		
+		third_flags = rtap_head->it_present[8] | rtap_head->it_present[9]<<8 |
+		rtap_head->it_present[10]<<16 | rtap_head->it_present[11]<<24;
+		
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_TSFT)) ? 8 : 0 ;	/* IEEE80211_RADIOTAP_TSFT */
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_FLAGS)) ? 1 : 0 ; /* IEEE80211_RADIOTAP_FLAGS */
+
+
+		//offset += 1; /* Whatever the IEEE80211_RADIOTAP_RATE flag is, we need to add one to the offset */
+		// 		offset += (first_flags & 0x04) == 0x04) ? 1 : 0 ; /* IEEE80211_RADIOTAP_RATE */
+
+		// 		printf("channel : %d - %d\n\r", *((unsigned short *) rtap_head + offset), *((unsigned short *) rtap_head + offset+2));
+
+
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_CHANNEL)) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_FHSS)) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
+		rssi3 = *((unsigned char *) rtap_head + offset) - 0x100;
+		
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTSIGNAL)) ? 1 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTNOISE)) ? 1 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_LOCK_QUALITY)) ? 2 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_TX_ATTENUATION)) ? 2 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DB_TX_ATTENUATION)) ? 2 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DBM_TX_POWER)) ? 1 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_ANTENNA)) ? 1 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DB_ANTSIGNAL)) ? 1 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DB_ANTNOISE)) ? 1 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_RX_FLAGS)) ? 2 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_TX_FLAGS)) ? 2 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_RTS_RETRIES)) ? 1 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DATA_RETRIES)) ? 1 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_MCS)) ? 3 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_AMPDU_STATUS)) ? 8 : 0 ;
+		offset += (third_flags & (1<<IEEE80211_RADIOTAP_VHT)) ? 12 : 0 ;
+		
+		printf("rssi1 = %d, rssi2 = %d, rssi3 = %d\n\r", rssi1, rssi2, rssi3);
 
 		// 		printf("Sequence control : %d\n\r", eh->sequence_control);
 		printf("%d bytes -- %02X:%02X:%02X:%02X:%02X:%02X -- RSSI: %d dBm, offset : %d\n",
-				size_radiotap, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], (int)rssi, offset);
+				size_radiotap, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], (int)rssi1, offset);
 // 		printf("receive : %02X:%02X:%02X:%02X:%02X:%02X\n\r", mac_receive[0], mac_receive[1], mac_receive[2], mac_receive[3], mac_receive[4], mac_receive[5]);
 		//}
 
@@ -102,7 +201,7 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 		/* Only send packet when packet is for the server */
 		if(ip->ip_dst.s_addr == inet_addr(HOST)) {
 			/* Send request to the server */
-			send_request(inet_ntoa(ip->ip_src),rssi);
+			send_request(inet_ntoa(ip->ip_src),rssi1,rssi2,rssi3);
 			
 
 			/* print source and destination IP addresses */

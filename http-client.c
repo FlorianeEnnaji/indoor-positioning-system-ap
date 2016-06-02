@@ -9,19 +9,19 @@
 #include "http-client.h"
 
 
-void send_request(const char *ipSrc, const int rssi)
+void send_request(const char *ipSrc, const int rssi1, const int rssi2, const int rssi3)
 {
 	int sock, rv, cc;
 	char msg_r[TAILLEMAX] = "", *port = PORT, *host=HOST;
 	char * get;
 	int tmpres;
-	char *req_format = "DeviceIp=%s&RSSI=%03d\0";
+	char *req_format = "DeviceIp=%s&RSSI=%03d,%03d,%03d\0";
 	char *req;
 	struct addrinfo hints, *infos;
 
 	//printf("req ?\n\r");
-	req = (char*) malloc(strlen(req_format)-6+strlen(ipSrc)+20);
-	sprintf(req, req_format, ipSrc, rssi);
+	req = (char*) malloc(strlen(req_format)-9+strlen(ipSrc)+30);
+	sprintf(req, req_format, ipSrc, rssi1, rssi2, rssi3);
 	//printf("rssi : %03d\n", rssi);
 	//printf("req = %s\n\r", req);
 	memset(&hints, 0, sizeof(hints));

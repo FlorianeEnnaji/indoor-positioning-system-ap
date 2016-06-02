@@ -102,7 +102,7 @@ struct ieee80211_radiotap_header
 	u_char it_version;
 	u_char it_pad;
 	u_char it_len[2];
-	u_char it_present[4];
+	u_char it_present[12];
 };
 
 

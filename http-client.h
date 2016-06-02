@@ -8,7 +8,7 @@
 #define PORT "8090"
 #define USERAGENT "HTMLGET 1.1"
 
-void send_request(const char *ipSrc, const int rssi);
+void send_request(const char *ipSrc, const int rssi1, const int rssi2, const int rssi3);
 char *build_get_query(const char *host, const char *page);
 char * build_post_query(const char *host, const char *page, const char *content);
 
