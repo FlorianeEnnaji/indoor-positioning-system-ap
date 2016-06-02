@@ -69,7 +69,7 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 
 		offset += (first_flags & (1<<IEEE80211_RADIOTAP_CHANNEL)) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
 		offset += (first_flags & (1<<IEEE80211_RADIOTAP_FHSS)) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
-		rssi1 = *((unsigned char *) rtap_head + offset) - 0x100;
+		rssi[0] = *((unsigned char *) rtap_head + offset) - 0x100;
 
 		offset += 1;	/* Memory alignment */
 		
@@ -113,8 +113,8 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 		offset += (second_flags & (1<<IEEE80211_RADIOTAP_CHANNEL)) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
 		offset += (second_flags & (1<<IEEE80211_RADIOTAP_FHSS)) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
 		
-		rssi2 = *((unsigned char *) rtap_head + offset) - 0x100;
-// 		printf("RSSI2 offest : %d, RSSI2 = %d\n\r", offset, rssi2);
+		rssi[1] = *((unsigned char *) rtap_head + offset) - 0x100;
+// 		printf("RSSI2 offest : %d, RSSI2 = %d\n\r", offset, rssi[1]);
 		
 		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTSIGNAL)) ? 1 : 0 ;
 		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTNOISE)) ? 1 : 0 ;
@@ -148,7 +148,7 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 
 		offset += (third_flags & (1<<IEEE80211_RADIOTAP_CHANNEL)) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
 		offset += (third_flags & (1<<IEEE80211_RADIOTAP_FHSS)) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
-		rssi3 = *((unsigned char *) rtap_head + offset) - 0x100;
+		rssi[2] = *((unsigned char *) rtap_head + offset) - 0x100;
 		
 		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTSIGNAL)) ? 1 : 0 ;
 		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTNOISE)) ? 1 : 0 ;
@@ -167,7 +167,7 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 		offset += (third_flags & (1<<IEEE80211_RADIOTAP_AMPDU_STATUS)) ? 8 : 0 ;
 		offset += (third_flags & (1<<IEEE80211_RADIOTAP_VHT)) ? 12 : 0 ;
 		
-		printf("rssi1 = %d, rssi2 = %d, rssi3 = %d\n\r", rssi1, rssi2, rssi3);
+		printf("rssi[0] = %d, rssi[1] = %d, rssi[2] = %d\n\r", rssi[0], rssi[1], rssi[2]);
 
 		// 		printf("Sequence control : %d\n\r", eh->sequence_control);
 		printf("%d bytes -- %02X:%02X:%02X:%02X:%02X:%02X -- RSSI: %d dBm, offset : %d\n",
