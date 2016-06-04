@@ -139,7 +139,7 @@ enum ieee80211_radiotap_type {
 	IEEE80211_RADIOTAP_TX_FLAGS = 15,
 	IEEE80211_RADIOTAP_RTS_RETRIES = 16,
 	IEEE80211_RADIOTAP_DATA_RETRIES = 17,
-
+	IEEE80211_RADIOTAP_XCHANNEL = 18,	/* Unofficial, supported by BSD */
 	IEEE80211_RADIOTAP_MCS = 19,
 	IEEE80211_RADIOTAP_AMPDU_STATUS = 20,
 	IEEE80211_RADIOTAP_VHT = 21,
@@ -150,6 +150,10 @@ enum ieee80211_radiotap_type {
 	IEEE80211_RADIOTAP_EXT = 31
 };
 
+struct radiotap_align_size {		
+	uint8_t align;		
+	uint8_t size;		
+};
 
 void got_packet(unsigned char *, const struct pcap_pkthdr *, const unsigned char *);
 

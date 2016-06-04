@@ -4,6 +4,36 @@
 
 sem_t synchro;
 
+/* Array containing the alignment requirements and content length of all radiotap fields */
+const struct radiotap_align_size radiotap_field_sizes[] = {		
+	/* [IEEE80211_RADIOTAP_TSFT] = 0 */                     { 8, 8 },		
+	/* [IEEE80211_RADIOTAP_FLAGS] = 1 */                    { 1, 1 },		
+	/* [IEEE80211_RADIOTAP_RATE] = 2 */                     { 1, 1 },		
+	/* [IEEE80211_RADIOTAP_CHANNEL] = 3 */                  { 2, 4 },		
+	/* [IEEE80211_RADIOTAP_FHSS] = 4 */                     { 2, 2 },		
+	/* [IEEE80211_RADIOTAP_DBM_ANTSIGNAL] = 5 */            { 1, 1 },		
+	/* [IEEE80211_RADIOTAP_DBM_ANTNOISE] = 6 */             { 1, 1 },		
+	/* [IEEE80211_RADIOTAP_LOCK_QUALITY] = 7 */             { 2, 2 },		
+	/* [IEEE80211_RADIOTAP_TX_ATTENUATION] = 8 */           { 2, 2 },		
+	/* [IEEE80211_RADIOTAP_DB_TX_ATTENUATION] = 9 */        { 2, 2 },		
+	/* [IEEE80211_RADIOTAP_DBM_TX_POWER] = 10 */            { 1, 1 },		
+	/* [IEEE80211_RADIOTAP_ANTENNA] = 11 */                 { 1, 1 },		
+	/* [IEEE80211_RADIOTAP_DB_ANTSIGNAL] = 12 */            { 1, 1 },		
+	/* [IEEE80211_RADIOTAP_DB_ANTNOISE] = 13 */             { 1, 1 },		
+	/* [IEEE80211_RADIOTAP_RX_FLAGS] = 14 */                { 2, 2 },		
+	/* [IEEE80211_RADIOTAP_TX_FLAGS] = 15 */                { 2, 2 },		
+	/* [IEEE80211_RADIOTAP_RTS_RETRIES] = 16 */             { 1, 1 },		
+	/* [IEEE80211_RADIOTAP_DATA_RETRIES] = 17 */            { 1, 1 },		
+	/* [IEEE80211_RADIOTAP_XCHANNEL] = 18 */                { 0, 0 }, /* Unofficial, used by FreeBSD */		
+	/* [IEEE80211_RADIOTAP_MCS] = 19 */                     { 1, 3 },		
+	/* [IEEE80211_RADIOTAP_AMPDU_STATUS] = 20 */            { 4, 8 },		
+	/* [IEEE80211_RADIOTAP_VHT] = 21 */                     { 2, 12 }		
+	
+	/*		
+		* add more here as they are defined in		
+		* include/net/ieee80211_radiotap.h		
+		*/		
+};
 
 /* Callback for packet captured */
 void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const unsigned char *packet)
@@ -23,11 +53,13 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 	int size_payload;
 
 	const unsigned char * mac, *mac_receive;
-	unsigned long first_flags, second_flags, third_flags;
+	unsigned long present_flags;
 	int offset = 0;
 	char rssi[3] = {0};
 
 	const unsigned char * ptrPacket = packet;	/* Pointer used to go through the packet and decode it */
+	
+	int field, idFlag = 0, idRssi = 0;
 
 	count++;
 
@@ -48,124 +80,39 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 		mac = (unsigned char*)eh->source_addr;
 
 		mac_receive = (unsigned char*)eh->recipient;
-		first_flags = rtap_head->it_present[0] | rtap_head->it_present[1]<<8 |
-		rtap_head->it_present[2]<<16 | rtap_head->it_present[3]<<24;
-		
-		printf("first flag : %hhx %hhx %hhx %hhx\n\r", first_flags, first_flags>>8, first_flags>>16, first_flags>>24);
 		
 		offset = 8;	/* size of the radiotap header */
 
 		offset += 8;
-
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_TSFT)) ? 8 : 0 ;	/* IEEE80211_RADIOTAP_TSFT */
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_FLAGS)) ? 1 : 0 ; /* IEEE80211_RADIOTAP_FLAGS */
-
-		offset += 1;
 		
- 		offset += (first_flags & (1<<IEEE80211_RADIOTAP_RATE)) ? 1 : 0 ; /* IEEE80211_RADIOTAP_RATE */
-
-		// 		printf("channel : %d - %d\n\r", *((unsigned short *) rtap_head + offset), *((unsigned short *) rtap_head + offset+2));
-
-
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_CHANNEL)) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_FHSS)) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
-		rssi[0] = *((unsigned char *) rtap_head + offset) - 0x100;
-
-		offset += 1;	/* Memory alignment */
-		
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTSIGNAL)) ? 1 : 0 ;
-
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTNOISE)) ? 1 : 0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_LOCK_QUALITY)) ? 2 : 0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_TX_ATTENUATION)) ? 2 : 0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DB_TX_ATTENUATION)) ? 2 :
-		0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DBM_TX_POWER)) ? 1 : 0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_ANTENNA)) ? 1 : 0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DB_ANTSIGNAL)) ? 1 : 0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DB_ANTNOISE)) ? 1 : 0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_RX_FLAGS)) ? 2 : 0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_TX_FLAGS)) ? 2 : 0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_RTS_RETRIES)) ? 1 : 0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_DATA_RETRIES)) ? 1 : 0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_MCS)) ? 3 : 0 ;
-		
-		offset += 3;	/* Memory alignment */
-		
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_AMPDU_STATUS)) ? 8 : 0 ;
-		offset += (first_flags & (1<<IEEE80211_RADIOTAP_VHT)) ? 12 : 0 ;		
-		second_flags = rtap_head->it_present[4] | rtap_head->it_present[5]<<8 |
-		rtap_head->it_present[6]<<16 | rtap_head->it_present[7]<<24;
-		
-// 		printf("second flag : %hhx %hhx %hhx %hhx\n\r", second_flags, second_flags>>8, second_flags>>16, second_flags>>24);
-		
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_TSFT)) ? 8 : 0 ;	/* IEEE80211_RADIOTAP_TSFT */
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_FLAGS)) ? 1 : 0 ; /* IEEE80211_RADIOTAP_FLAGS */
-
-
-		//offset += 1; 
-		
-		// 		offset += (first_flags & 0x04) == 0x04) ? 1 : 0 ; /* IEEE80211_RADIOTAP_RATE */
-
-		// 		printf("channel : %d - %d\n\r", *((unsigned short *) rtap_head + offset), *((unsigned short *) rtap_head + offset+2));
-
-
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_CHANNEL)) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_FHSS)) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
-		
-		rssi[1] = *((unsigned char *) rtap_head + offset) - 0x100;
-// 		printf("RSSI2 offest : %d, RSSI2 = %d\n\r", offset, rssi[1]);
-		
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTSIGNAL)) ? 1 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTNOISE)) ? 1 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_LOCK_QUALITY)) ? 2 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_TX_ATTENUATION)) ? 2 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DB_TX_ATTENUATION)) ? 2 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DBM_TX_POWER)) ? 1 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_ANTENNA)) ? 1 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DB_ANTSIGNAL)) ? 1 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DB_ANTNOISE)) ? 1 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_RX_FLAGS)) ? 2 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_TX_FLAGS)) ? 2 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_RTS_RETRIES)) ? 1 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_DATA_RETRIES)) ? 1 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_MCS)) ? 3 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_AMPDU_STATUS)) ? 8 : 0 ;
-		offset += (second_flags & (1<<IEEE80211_RADIOTAP_VHT)) ? 12 : 0 ;
-		
-		third_flags = rtap_head->it_present[8] | rtap_head->it_present[9]<<8 |
-		rtap_head->it_present[10]<<16 | rtap_head->it_present[11]<<24;
-		
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_TSFT)) ? 8 : 0 ;	/* IEEE80211_RADIOTAP_TSFT */
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_FLAGS)) ? 1 : 0 ; /* IEEE80211_RADIOTAP_FLAGS */
-
-
-		//offset += 1; /* Whatever the IEEE80211_RADIOTAP_RATE flag is, we need to add one to the offset */
-		// 		offset += (first_flags & 0x04) == 0x04) ? 1 : 0 ; /* IEEE80211_RADIOTAP_RATE */
-
-		// 		printf("channel : %d - %d\n\r", *((unsigned short *) rtap_head + offset), *((unsigned short *) rtap_head + offset+2));
-
-
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_CHANNEL)) ? 4 : 0 ; /* IEEE80211_RADIOTAP_CHANNEL */
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_FHSS)) ? 2 : 0 ; /* IEEE80211_RADIOTAP_FHSS */
-		rssi[2] = *((unsigned char *) rtap_head + offset) - 0x100;
-		
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTSIGNAL)) ? 1 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DBM_ANTNOISE)) ? 1 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_LOCK_QUALITY)) ? 2 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_TX_ATTENUATION)) ? 2 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DB_TX_ATTENUATION)) ? 2 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DBM_TX_POWER)) ? 1 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_ANTENNA)) ? 1 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DB_ANTSIGNAL)) ? 1 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DB_ANTNOISE)) ? 1 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_RX_FLAGS)) ? 2 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_TX_FLAGS)) ? 2 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_RTS_RETRIES)) ? 1 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_DATA_RETRIES)) ? 1 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_MCS)) ? 3 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_AMPDU_STATUS)) ? 8 : 0 ;
-		offset += (third_flags & (1<<IEEE80211_RADIOTAP_VHT)) ? 12 : 0 ;
+		/* Loop through the present flags from the radiotap header */
+		do {
+			/* Read flag into 32-bit value */
+			present_flags = rtap_head->it_present[idFlag*4] | rtap_head->it_present[idFlag*4+1]<<8 |
+				rtap_head->it_present[idFlag*4+2]<<16 | rtap_head->it_present[idFlag*4+3]<<24;
+// 			printf("present_flags flag : %hhx %hhx %hhx %hhx\n\r", present_flags, present_flags>>8, present_flags>>16, present_flags>>24);
+				
+			
+			for(field = IEEE80211_RADIOTAP_TSFT; field <= IEEE80211_RADIOTAP_VHT; field++) {
+				/* For each field, check if it is present */
+				if(present_flags & (1 << field)) {
+					/* If the field is present but misalaigned, we add a padding to the offset */
+					if((offset % radiotap_field_sizes[field].align) != 0) {
+						offset += radiotap_field_sizes[field].align - 
+							(offset % radiotap_field_sizes[field].align);
+					}
+					
+					/* For RSSI fields, store their values in the corresponding array */
+					if(field == IEEE80211_RADIOTAP_DBM_ANTSIGNAL) {
+						rssi[idRssi++] = *((unsigned char *) rtap_head + offset) - 0x100;
+					}
+						
+					/* Add the field content length to the offset */
+					offset += radiotap_field_sizes[field].size;
+				}
+			}
+			idFlag++;
+		}while(present_flags & (1 << IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE));	/* IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE indicates that another 32-bit flag is present */
 		
 		printf("rssi[0] = %d, rssi[1] = %d, rssi[2] = %d\n\r", rssi[0], rssi[1], rssi[2]);
 
