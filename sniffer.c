@@ -60,9 +60,9 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 		offset += (first_flags & (1<<IEEE80211_RADIOTAP_TSFT)) ? 8 : 0 ;	/* IEEE80211_RADIOTAP_TSFT */
 		offset += (first_flags & (1<<IEEE80211_RADIOTAP_FLAGS)) ? 1 : 0 ; /* IEEE80211_RADIOTAP_FLAGS */
 
-
-		offset += 1; /* Whatever the IEEE80211_RADIOTAP_RATE flag is, we need to add one to the offset */
-		// 		offset += (first_flags & 0x04) == 0x04) ? 1 : 0 ; /* IEEE80211_RADIOTAP_RATE */
+		offset += 1;
+		
+ 		offset += (first_flags & (1<<IEEE80211_RADIOTAP_RATE)) ? 1 : 0 ; /* IEEE80211_RADIOTAP_RATE */
 
 		// 		printf("channel : %d - %d\n\r", *((unsigned short *) rtap_head + offset), *((unsigned short *) rtap_head + offset+2));
 
