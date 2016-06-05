@@ -45,3 +45,12 @@ Once the binary is on the target, connect to it using SSH or other method and la
 # ./ips-ap
 ```
 If you want to filter packets on a specific MAC address, you can pass it in the form of XX:XX:XX:XX:XX:XX as an optional first argument.
+
+## Documentation
+
+To generate documentation for this program, you need to install doxygen and then execute it with :
+```
+doxygen ./config-doxygen
+```
+
+This will generate create both html documentations and LaTeX / PDF documentation.
