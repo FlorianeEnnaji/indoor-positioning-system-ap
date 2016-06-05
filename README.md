@@ -18,6 +18,17 @@ The Makefile specifies in the PREFIX variable where those two elements have been
 
 Make sure libpcap is installed on the Access points.
 
+The wireless interface used to capture packets is specified in main.c. By default, it is wlan0. This interface need to be put into monitor mode before executing the program on the access point. This can be done with the OpenWrt web interface LuCI :
+1. Enter the web interface by typing the IP of the access point in a browser
+2. Expand the Network menu and click on Wifi
+3. Next to the main level radio interface, click on Add
+4. Check that the ESSID is the same as the standard wifi interface
+5. Change mode to Monitor Mode
+6. Apply the changes
+7. Connect to the router via SSH and do if-config
+8. The wireless interface you have to store in main.c is the one with a strangely long MAC address (with following 00)
+
+
 To build, just do :
 ```
 $ make
