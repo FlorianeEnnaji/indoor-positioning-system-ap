@@ -12,12 +12,12 @@ LDFLAGS=-L$(PREFIX)/toolchain/lib/ -L$(PREFIX)/target/usr/lib/ -lpcap -lm -pthre
 # 	$(GCC) $(ALLFLAGS) openwrt-helloworld.c -o openwrt-helloworld
 
 #TARGET=rssi-display
-TARGET=main
+TARGET=ips-ap
 
 all: $(TARGET)
 
-main: sniffer.o main.o http-client.o
-	$(GCC) $(LDFLAGS) -o main sniffer.o main.o http-client.o
+ips-ap: sniffer.o main.o http-client.o
+	$(GCC) $(LDFLAGS) -o ips-ap sniffer.o main.o http-client.o
 
 main.o : main.c sniffer.h http-client.h
 	$(GCC) $(GCCFLAGS) -c -o main.o main.c
