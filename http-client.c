@@ -11,45 +11,58 @@
 
 void send_request(const char *ipSrc, const int rssi1, const int rssi2, const int rssi3)
 {
-	int sock, rv, cc;
-	char msg_r[TAILLEMAX] = "", *port = PORT, *host=HOST;
-	char * get;
-	int tmpres;
-	char *req_format = "DeviceIp=%s&RSSI=%03d,%03d,%03d\0";
+	/* Integers used to store return codes of socket functions */
+	int sock, rv, cc, tmpres;
+	/* Buffer for storing content sent by the server in response to an request */
+	char msg_r[MAX_ANSWER_SIZE] = "";
+	/* Server's IP address */
+	char *host=HOST;
+	/* Port on which the server is listening */
+	char *port = PORT;
+	/* Page to which the requests have to be sent */
+	char *page = PAGE;
+	/* String of the query */
+	char * query;
+	/* Format of the query, used in sprintf */
+	char *req_format = "DeviceIp=%s&RSSI=%04d,%04d,%04d\0";
+	/* Total request to be sent to the server */
 	char *req;
+	
+	/* Store informations about the host for the socket functions */
 	struct addrinfo hints, *infos;
 
-	//printf("req ?\n\r");
-	req = (char*) malloc(strlen(req_format)-9+strlen(ipSrc)+30);
+	/* Allocate memory for storing the request */
+	req = (char*) malloc(strlen(req_format)-9+strlen(ipSrc)+4*4+1);
+	/* Format the request using the function's parameters */
 	sprintf(req, req_format, ipSrc, rssi1, rssi2, rssi3);
-	//printf("rssi : %03d\n", rssi);
-	//printf("req = %s\n\r", req);
+	
+	/* Setup hints for socket stream */
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_socktype = SOCK_STREAM;
 
+	/* Convert host and port to usable data structure for socket functions */
 	if ( (rv = getaddrinfo(host, port, &hints, &infos)) != 0)
 	{
 		fprintf(stderr, "tcp listen error for %s, %s, %s", host, port, gai_strerror(rv));
 	}
-
+	/* Open socket */
 	if( (sock = socket(infos->ai_family, infos->ai_socktype, infos->ai_protocol)) == -1)
 	{
 		perror("socket creation error : ");
 	}
-
+	/* Connect to the server */
 	if( (cc = connect(sock, infos->ai_addr, infos->ai_addrlen)) == -1)
 	{
 		perror("socket connection error : ");
 	}
+	/* Build the HTTP request */
+	query = build_post_query(host, page, req);
 
-	get = build_post_query(host, "/api/AP-measure",req);
-	// 	printf("message sent : %s\n", get);
-
-	//Send the query to the server
+	/* Send the query to the server */
 	int sent = 0;
-	while(sent < strlen(get))
+	while(sent < strlen(query))
 	{
-		tmpres = send(sock, get+sent, strlen(get)-sent, 0);
+		tmpres = send(sock, query+sent, strlen(query)-sent, 0);
 		if(tmpres == -1){
 			perror("Can't send query");
 			exit(1);
@@ -57,15 +70,16 @@ void send_request(const char *ipSrc, const int rssi1, const int rssi2, const int
 		sent += tmpres;
 	}
 
-	//send(sock, msg_e, strlen(msg_e), MSG_PEEK);
-
+	/* Store response into buffer */
 	recv(sock, msg_r, sizeof(msg_r), MSG_PEEK);
 
 	// 	printf("message received : %s\n", msg_r);
 
+	/* Close the socket */
 	close(sock);
+	/* Free allocated memory */
 	free(req);
-	free(get);
+	free(query);
 	freeaddrinfo(infos);
 }
 
@@ -73,13 +87,18 @@ char * build_get_query(const char *host, const char *page)
 {
 	char *query;
 	const char *getpage = page;
+	/* Template for the request */
 	char *tpl = "GET /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\n\r\n";
 	if(getpage[0] == '/'){
 		getpage = getpage + 1;
 		//     fprintf(stderr,"Removing leading \"/\", converting %s to %s\n", page, getpage);
 	}
-	// -5 is to consider the %s %s %s in tpl and the ending \0
+	/* 
+	 * Allocate memory for storing the complete query.
+	 * -5 is to consider the %s %s %s in tpl and the ending \0 
+	 */
 	query = (char *)malloc(strlen(host)+strlen(getpage)+strlen(USERAGENT)+strlen(tpl)-5);
+	/* Format the query using template and function's parameters */
 	sprintf(query, tpl, getpage, host, USERAGENT);
 	return query;
 }
@@ -89,14 +108,19 @@ char * build_post_query(const char *host, const char *page, const char *content)
 	char *query;
 	const char *getpage = page;
 	int size = strlen(content);
+	/* Template for the request */
 	char *tpl = "POST /%s HTTP/1.1\r\nHost: %s\r\nUser-Agent: %s\r\nContent-Type: application/x-www-form-urlencoded\r\nContent-Length: %d\r\n\r\n%s";
 
 	if(getpage[0] == '/'){
 		getpage = getpage + 1;
 		//     fprintf(stderr,"Removing leading \"/\", converting %s to %s\n", page, getpage);
 	}
-	// -5 is to consider the %s %s %s in tpl and the ending \0
+	/* 
+	 * Allocate memory for storing the complete query.
+	 * -5 is to consider the %s %s %s in tpl and the ending \0 
+	 */
 	query = (char *)malloc(strlen(host)+strlen(getpage)+strlen(USERAGENT)+strlen(tpl)+size-5);
+	/* Format the query using template and function's parameters */
 	sprintf(query, tpl, getpage, host, USERAGENT, size, content);
 	return query;
 }
