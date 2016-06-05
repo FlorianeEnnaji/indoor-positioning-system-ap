@@ -1,3 +1,11 @@
+/**
+ * \file http-client.c
+ * \brief Contains functions used to build and send HTTP requests
+ * \date May 28, 2016
+ * 
+ * This file contains some functions used to build and send HTTP requests
+ * to the server
+ */
 #include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
