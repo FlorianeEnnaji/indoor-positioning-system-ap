@@ -10,7 +10,7 @@
 #define __HTTTP_CLIENT_H__
 
 /** \brief IP of the server */
-#define HOST "192.168.1.233"
+#define HOST "192.168.1.200"
 /** \brief Port used by the server to receive requests */
 #define PORT "8090"
 /** \brief Page on the server to which we need to send the requests */
