@@ -14,9 +14,10 @@
 
 #include "sniffer.h"
 #include "http-client.h"
-//#define PRINT_INFO(x)	puts(x);
-#define PRINT_INFO(x)	
-#define PRINT_DEBUG(x) puts(x);
+#define PRINT_INFO(x)	puts(x);
+//#define PRINT_INFO(x)	
+//#define PRINT_DEBUG(x) puts(x);
+#define PRINT_DEBUG(x)
 
 char debugBuffer[1024] = {0};
 
@@ -106,7 +107,25 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 
 		mac_receive = (unsigned char*)eh->recipient;
 		
-		offset = 16;	/* size of the radiotap header */
+		offset = 4;	/* size of the radiotap header */
+		
+		/* 
+		 * Loop through the present flags from the radiotap header 
+		 * First round to check how many series of flags we have
+		 */
+		do {
+			/* Read flag into 32-bit value */
+			present_flags = *(((u_char*)rtap_head->it_present)+(idFlag*4)) | 
+				*(((u_char*)rtap_head->it_present)+(idFlag*4+1))<<8 |
+				*(((u_char*)rtap_head->it_present)+(idFlag*4+2))<<16 | 
+				*(((u_char*)rtap_head->it_present)+(idFlag*4+3))<<24;
+// 			printf("present_flags flag : %hhx %hhx %hhx %hhx\n\r", present_flags, present_flags>>8, present_flags>>16, present_flags>>24);
+			idFlag++;
+		}while(present_flags & (1 << IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE));	/* IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE indicates that another 32-bit flag is present */
+		
+		/* Add the size of the flags into the original offset and reset idFlag for offset computation */
+		offset += 4*idFlag;
+		idFlag = 0;
 		
 		/* Loop through the present flags from the radiotap header */
 		do {
@@ -140,14 +159,14 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 			idFlag++;
 		}while(present_flags & (1 << IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE));	/* IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE indicates that another 32-bit flag is present */
 		
-		if(offset != size_radiotap) {
+		if(offset != size_radiotap || rssi[0] == 0 || rssi[1] == 0 || rssi[2] == 0) {
 			PRINT_DEBUG(debugBuffer);
 			printf("Strange header detected !\n\rHeader size smaller than offset\n\r");
-			print_payload(ptrPacket, size_radiotap);
+			print_payload(packet, size_radiotap);
 			return;
 		}
-		printf(" Header OK : \n\r");
-		print_payload(ptrPacket, size_radiotap);
+		//printf(" Header OK : \n\r");
+		//print_payload(packet, size_radiotap);
 		
 		sprintf( debugBuffer+strlen(debugBuffer), "rssi[0] = %d, rssi[1] = %d, rssi[2] = %d\n\r", rssi[0], rssi[1], rssi[2]);
 
@@ -165,7 +184,7 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 		/* Get the size of the IP header and check it is less than 20 */
 		size_ip = IP_HL(ip)*4;
 		if (size_ip < 20) {
-			PRINT_INFO(debugBuffer);
+// 			PRINT_INFO(debugBuffer);
 			printf("   * Invalid IP header length: %u bytes\n", size_ip);
 			return;
 		}
@@ -186,19 +205,19 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 					break;
 				case IPPROTO_UDP:
 					sprintf( debugBuffer+strlen(debugBuffer), "   Protocol: UDP\n");
-					PRINT_INFO(debugBuffer);
+// 					PRINT_INFO(debugBuffer);
 					return;
 				case IPPROTO_ICMP:
 					sprintf( debugBuffer+strlen(debugBuffer), "   Protocol: ICMP\n");
-					PRINT_INFO(debugBuffer);
+// 					PRINT_INFO(debugBuffer);
 					return;
 				case IPPROTO_IP:
 					sprintf( debugBuffer+strlen(debugBuffer), "   Protocol: IP\n");
-					PRINT_INFO(debugBuffer);
+// 					PRINT_INFO(debugBuffer);
 					return;
 				default:
 					sprintf( debugBuffer+strlen(debugBuffer), "   Protocol: unknown\n");
-					PRINT_INFO(debugBuffer);
+// 					PRINT_INFO(debugBuffer);
 					return;
 			}
 
@@ -240,7 +259,8 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 			if(rssi[0] == 0 || rssi[1] == 0 || rssi[2] == 0) {
 				sprintf( debugBuffer+strlen(debugBuffer), "RSSI : %d, %d, %d\n\r", rssi[0], rssi[1], rssi[2]);
 				PRINT_INFO(debugBuffer);
-				while(1) {}
+				PRINT_INFO("--------------------------------------------------------\n\r");
+				//while(1) {}
 			}
 			
 		}
