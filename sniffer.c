@@ -14,6 +14,11 @@
 
 #include "sniffer.h"
 #include "http-client.h"
+//#define PRINT_INFO(x)	puts(x);
+#define PRINT_INFO(x)	
+#define PRINT_DEBUG(x) puts(x);
+
+char debugBuffer[1024] = {0};
 
 /**
  * \brief Array containing the alignment requirements and content length of all radiotap header fields
@@ -79,6 +84,8 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 	int field, idFlag = 0, idRssi = 0;	/* Counters used to decode it_present flags */
 
 	count++;
+	
+	debugBuffer[0] = 0;
 
 	/* First in the packet, we have the radio header */
 	rtap_head = (struct ieee80211_radiotap_header *) ptrPacket;
@@ -94,7 +101,7 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 
 	/* Only parse big packets (more likely to be ip packets) */
 	if ((eh->frame_control & 0x03) == 0x01 && header->len > 300) {
-		printf("Packet n°%llu\n\r", count);
+		sprintf( debugBuffer+strlen(debugBuffer), "Packet n°%llu\n\r", count);
 		mac = (unsigned char*)eh->source_addr;
 
 		mac_receive = (unsigned char*)eh->recipient;
@@ -133,10 +140,19 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 			idFlag++;
 		}while(present_flags & (1 << IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE));	/* IEEE80211_RADIOTAP_RADIOTAP_NAMESPACE indicates that another 32-bit flag is present */
 		
-		printf("rssi[0] = %d, rssi[1] = %d, rssi[2] = %d\n\r", rssi[0], rssi[1], rssi[2]);
+		if(offset != size_radiotap) {
+			PRINT_DEBUG(debugBuffer);
+			printf("Strange header detected !\n\rHeader size smaller than offset\n\r");
+			print_payload(ptrPacket, size_radiotap);
+			return;
+		}
+		printf(" Header OK : \n\r");
+		print_payload(ptrPacket, size_radiotap);
+		
+		sprintf( debugBuffer+strlen(debugBuffer), "rssi[0] = %d, rssi[1] = %d, rssi[2] = %d\n\r", rssi[0], rssi[1], rssi[2]);
 
 		// 		printf("Sequence control : %d\n\r", eh->sequence_control);
-		printf("%d bytes -- %02X:%02X:%02X:%02X:%02X:%02X -- offset : %d\n",
+		sprintf( debugBuffer+strlen(debugBuffer), "%d bytes -- %02X:%02X:%02X:%02X:%02X:%02X -- offset : %d\n",
 				size_radiotap, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5], offset);
 
 		/* After ieee80211 header, there is the Logical Link Control header */
@@ -149,6 +165,7 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 		/* Get the size of the IP header and check it is less than 20 */
 		size_ip = IP_HL(ip)*4;
 		if (size_ip < 20) {
+			PRINT_INFO(debugBuffer);
 			printf("   * Invalid IP header length: %u bytes\n", size_ip);
 			return;
 		}
@@ -157,27 +174,31 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 		if(ip->ip_dst.s_addr == inet_addr(HOST)) {
 			/* Send request to the server */
 			send_request(inet_ntoa(ip->ip_src),rssi[0],rssi[1],rssi[2]);
-
+			
 			/* print source and destination IP addresses */
-			printf("       From: %s\n", inet_ntoa(ip->ip_src));
-			printf("         To: %s\n", inet_ntoa(ip->ip_dst));
+			sprintf( debugBuffer+strlen(debugBuffer), "       From: %s\n", inet_ntoa(ip->ip_src));
+			sprintf( debugBuffer+strlen(debugBuffer), "         To: %s\n", inet_ntoa(ip->ip_dst));
 
 			/* determine protocol */	
 			switch(ip->ip_p) {
 				case IPPROTO_TCP:
-					printf("   Protocol: TCP\n");
+					sprintf( debugBuffer+strlen(debugBuffer), "   Protocol: TCP\n");
 					break;
 				case IPPROTO_UDP:
-					printf("   Protocol: UDP\n");
+					sprintf( debugBuffer+strlen(debugBuffer), "   Protocol: UDP\n");
+					PRINT_INFO(debugBuffer);
 					return;
 				case IPPROTO_ICMP:
-					printf("   Protocol: ICMP\n");
+					sprintf( debugBuffer+strlen(debugBuffer), "   Protocol: ICMP\n");
+					PRINT_INFO(debugBuffer);
 					return;
 				case IPPROTO_IP:
-					printf("   Protocol: IP\n");
+					sprintf( debugBuffer+strlen(debugBuffer), "   Protocol: IP\n");
+					PRINT_INFO(debugBuffer);
 					return;
 				default:
-					printf("   Protocol: unknown\n");
+					sprintf( debugBuffer+strlen(debugBuffer), "   Protocol: unknown\n");
+					PRINT_INFO(debugBuffer);
 					return;
 			}
 
@@ -190,13 +211,14 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 			tcp = (struct sniff_tcp*)(ptrPacket);
 			size_tcp = TH_OFF(tcp)*4;
 			if (size_tcp < 20) {
-				printf("   * Invalid TCP header length: %u bytes\n", size_tcp);
+				sprintf( debugBuffer+strlen(debugBuffer), "   * Invalid TCP header length: %u bytes\n", size_tcp);
+				PRINT_INFO(debugBuffer);
 				return;
 			}
 			
 			/* Print source and destination ports */
-			printf("   Src port: %d\n", ntohs(tcp->th_sport));
-			printf("   Dst port: %d\n", ntohs(tcp->th_dport));
+			sprintf( debugBuffer+strlen(debugBuffer), "   Src port: %d\n", ntohs(tcp->th_sport));
+			sprintf( debugBuffer+strlen(debugBuffer), "   Dst port: %d\n", ntohs(tcp->th_dport));
 
 			/* Define/compute tcp payload (segment) offset */
 			ptrPacket += size_tcp;
@@ -210,9 +232,17 @@ void got_packet(unsigned char *args, const struct pcap_pkthdr *header, const uns
 			 * treat it as a string.
 			 */
 			if (size_payload > 0) {
-				printf("   Payload (%d bytes):\n", size_payload);
+				sprintf( debugBuffer+strlen(debugBuffer), "   Payload (%d bytes):\n", size_payload);
+				PRINT_INFO(debugBuffer);
 				print_payload(payload, size_payload);
 			}
+			
+			if(rssi[0] == 0 || rssi[1] == 0 || rssi[2] == 0) {
+				sprintf( debugBuffer+strlen(debugBuffer), "RSSI : %d, %d, %d\n\r", rssi[0], rssi[1], rssi[2]);
+				PRINT_INFO(debugBuffer);
+				while(1) {}
+			}
+			
 		}
 	}
 }
