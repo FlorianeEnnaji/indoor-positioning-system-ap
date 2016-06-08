@@ -56,12 +56,17 @@ void send_request(const char *ipSrc, const int rssi1, const int rssi2, const int
 	/* Open socket */
 	if( (sock = socket(infos->ai_family, infos->ai_socktype, infos->ai_protocol)) == -1)
 	{
-		perror("socket creation error : ");
+		printf("socket creation error : %d\n\r", sock);
+		return;
+// 		exit(1);
 	}
 	/* Connect to the server */
 	if( (cc = connect(sock, infos->ai_addr, infos->ai_addrlen)) == -1)
 	{
-		perror("socket connection error : ");
+		printf("socket connection error : %d\n\r", cc);
+		printf("Packet was not sent\n\r");
+		return;
+// 		exit(1);
 	}
 	/* Build the HTTP request */
 	query = build_post_query(host, page, req);
@@ -72,7 +77,7 @@ void send_request(const char *ipSrc, const int rssi1, const int rssi2, const int
 	{
 		tmpres = send(sock, query+sent, strlen(query)-sent, 0);
 		if(tmpres == -1){
-			perror("Can't send query");
+			printf("Can't send query");
 			exit(1);
 		}
 		sent += tmpres;
