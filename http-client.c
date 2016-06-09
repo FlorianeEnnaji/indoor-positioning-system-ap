@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "http-client.h"
+#define MW_MULTIPLIER 1000000000
 
 
 void send_request(const char *ipSrc, const int rssi1, const int rssi2, const int rssi3)
@@ -33,25 +34,25 @@ void send_request(const char *ipSrc, const int rssi1, const int rssi2, const int
 	/* String of the query */
 	char * query;
 	/* Format of the query, used in sprintf */
-	char *req_format = "DeviceIp=%s&RSSI=%04d,%04d,%04d&RSSI_mW=%.10f,%.10f,%.10f\0";
+	char *req_format = "DeviceIp=%s&RSSI_dBm=%04d,%04d,%04d&RSSI_pW=%.10f,%.10f,%.10f\0";
 	/* Total request to be sent to the server */
 	char *req;
 	
-	/* RSSI values in mW */
-	double rssi_mW[3] = {0};
+	/* RSSI values in pW */
+	double rssi_pW[3] = {0};
 	
 	/* Store informations about the host for the socket functions */
 	struct addrinfo hints, *infos;
 
-	/* Convert dBm to mW */
-	rssi_mW[0] = pow(10,(rssi1/10.));
-	rssi_mW[1] = pow(10,(rssi2/10.));
-	rssi_mW[2] = pow(10,(rssi3/10.));
+	/* Convert dBm to pW */
+	rssi_pW[0] = MW_MULTIPLIER*pow(10,(rssi1/10.));
+	rssi_pW[1] = MW_MULTIPLIER*pow(10,(rssi2/10.));
+	rssi_pW[2] = MW_MULTIPLIER*pow(10,(rssi3/10.));
 	
 	/* Allocate memory for storing the request */
-	req = (char*) malloc(strlen(req_format)-2+strlen(ipSrc)+1-(3*5)+3*15);
+	req = (char*) malloc(strlen(req_format)-2+strlen(ipSrc)+1-(3*5)+3*25);
 	/* Format the request using the function's parameters */
-	sprintf(req, req_format, ipSrc, rssi1, rssi2, rssi3, rssi_mW[0], rssi_mW[1], rssi_mW[2]);
+	sprintf(req, req_format, ipSrc, rssi1, rssi2, rssi3, rssi_pW[0], rssi_pW[1], rssi_pW[2]);
 	
 	puts(req);
 	
