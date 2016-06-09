@@ -74,15 +74,18 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Couldn't open device %s: %s\n", wirelessInterface, errbuf);
 		return(2);
 	}
-	/* Compile the filter */
-	if (pcap_compile(handle, &fp, filter_exp, 0, net) == -1) {
-		fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
-		return(2);
-	}
-	/* Apply the filter to the current session */
-	if (pcap_setfilter(handle, &fp) == -1) {
-		fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(handle));
-		return(2);
+	/* If the filter is not empty, we compile and apply it */
+	if(strlen(filter_exp) > 0) {
+		/* Compile the filter */
+		if (pcap_compile(handle, &fp, filter_exp, 0, net) == -1) {
+			fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
+			return(2);
+		}
+		/* Apply the filter to the current session */
+		if (pcap_setfilter(handle, &fp) == -1) {
+			fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(handle));
+			return(2);
+		}
 	}
 
 	/* 
